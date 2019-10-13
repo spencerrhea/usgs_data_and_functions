@@ -3,6 +3,8 @@ title: "Working with USGS Data and Functions"
 author: "Matthew Ross"
 date: "10/7/2019"
 output: html_document
+editor_options: 
+  chunk_output_type: console
 ---
 
 ```{r setup, include=FALSE}
@@ -11,6 +13,7 @@ library(dataRetrieval)
 library(dygraphs) #Time series plotting
 library(tidyr) 
 library(xts) #Time series objects
+library(ggthemes)
 
 knitr::opts_chunk$set(echo = TRUE)
 ```
@@ -154,6 +157,14 @@ plot). Please plot the `combo_data` dataset here.
 
 ```{r}
 
+gg_discharge <- function(data_set) {
+  ggplot(data_set, aes(x = Date, y = q_cfs)) +
+  geom_line() +
+  theme_few() +
+  labs(x = "Date", y = "Discharge (cfs)")}
+
+gg_discharge(combo_data)
+
 ```
 
 
@@ -166,6 +177,18 @@ Even if your function call works, why is my function "brittle?"
 Hint: hardcoding `q_cfs = X_00060_00003` could be dangerous
 
 ```{r}
+colo_austin <- q_downloader(site_no = '08158000',
+             site_id = 'colo_austin')
+
+rogue_riv <- q_downloader(site_no = "14359000",
+                          site_id = "rogue")
+
+#gg_discharge(colo_austin)
+
+#gg_discharge(rogue_riv)
+
+#this is gangerouse becuase the code may not always be X_00060_00003, which would cuases you to think something we dishcharge when it war really something else
+
 
 ```
 
@@ -180,7 +203,12 @@ to write a function that joins your two USGS datasets by calling one of the fami
 Hint: be careful of having two `site` columns. 
 
 ```{r}
+q_joiner <- function(data_1, data_2) { 
+  inner_join(x = data_1, y = data_2, by = 'Date') %>%
+    rename(data_1 = q_cfs.x, 
+           data_2 = q_cfs.y)}
 
+join <- q_joiner(colo_austin, rogue_riv)
 ```
 
 
@@ -191,6 +219,19 @@ a dygraph. Here, I want you to make a similar function that preps *and* plots a 
 
 
 ```{r}
+xts_join <- function(data_set) {
+   dat <- data_set %>%
+  select(data_1, data_2, Date)
+  
+  join_xts <- xts(dat %>%
+                  select(-Date),
+                order.by = dat$Date)
+  
+  dygraph(join_xts)
+    
+}
+
+xts_join(join)
 
 ```
 
